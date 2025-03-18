@@ -11,6 +11,7 @@
 #include "nvToolsExt.h"
 
 #include "test.h"
+#include <platform.h>
 
 int originalWindow = 0, currentWindow;
 

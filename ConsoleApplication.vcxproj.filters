@@ -97,9 +97,36 @@
     <ClCompile Include="test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="particle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="emmiter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="physics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vec4.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="particle.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vec2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="emmiter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="physics.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="platform.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

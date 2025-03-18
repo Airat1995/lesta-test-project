@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="emmiter.cpp" />
     <ClCompile Include="glut\glut_8x13.c" />
     <ClCompile Include="glut\glut_9x15.c" />
     <ClCompile Include="glut\glut_cmap.c" />
@@ -39,10 +40,18 @@
     <ClCompile Include="glut\win32_winproc.c" />
     <ClCompile Include="glut\win32_x11.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="particle.cpp" />
+    <ClCompile Include="physics.cpp" />
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="vec4.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="emmiter.h" />
+    <ClInclude Include="particle.h" />
+    <ClInclude Include="physics.h" />
+    <ClInclude Include="platform.h" />
     <ClInclude Include="test.h" />
+    <ClInclude Include="vec2.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B3FFBEF9-7B94-488A-98BE-0079263B9E95}</ProjectGuid>

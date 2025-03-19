@@ -12,122 +12,113 @@
 // You could remove all of them
 
 static std::atomic_int globalTime;
+static std::atomic_int _currentemmiterIndex;
 static std::atomic_bool workerMustExit = false;
 
-
-// some code
-
-void WorkerThread(void)
-{
-	while (!workerMustExit)
-	{
-		nvtxRangePush(__FUNCTION__);
-
-		static int lastTime = 0;
-		const int time = globalTime.load();
-		const int delta = time - lastTime;
-		lastTime = time;
-
-		printf("delta %d\n", delta);
-		if (delta > 0)
-		{
-			for (uint16_t emmiterIndex = 0; emmiterIndex < test::MAX_EMMITERS_COUNT; emmiterIndex++)
-			{
-				test::emmiters[emmiterIndex].update();
-			}
-
-			vec2& gravity = test::physic.getGravity();
-
-			for (uint16_t emmiterIndex = 0; emmiterIndex < test::MAX_EMMITERS_COUNT; emmiterIndex++)
-			{
-				test::emmiters[emmiterIndex].move(gravity);
-			}
-			// some code
-		}
-
-		static const int MIN_UPDATE_PERIOD_MS = 1;
-		if (delta < MIN_UPDATE_PERIOD_MS)
-			std::this_thread::sleep_for(std::chrono::milliseconds(MIN_UPDATE_PERIOD_MS - delta));
-
-		nvtxRangePop();
-	}
-}
-
+emmiter* emmiters;
+physics physic;
 
 void test::init(void)
 {
-	// some code
-
-	std::thread workerThread(WorkerThread);
-	workerThread.detach(); // Glut + MSVC = join hangs in atexit()
-	for (size_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
-	{
-		emmiters[emmiterIndex].init(0, 0);
-	}
-	physic.init(-.9f);
-
-	// some code
+	emmiters = new emmiter[test::MAX_EMMITERS_COUNT];
+	_currentemmiterIndex.store(-1);
+	physic.init(GRAVITY_FORCE);
 }
 
 void test::term(void)
 {
-	// some code
-
 	workerMustExit = true;
-
-	// some code
+	for (uint16_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
+	{
+		emmiters[emmiterIndex].stop();
+	}
+	delete[] emmiters;
 }
 
 void test::render(void)
 {
-	// some code
-
 	for (uint16_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
 	{
 		emmiters[emmiterIndex].render();
 	}
-	// some code
 }
 
 void test::update(int dt)
 {
-	// some code
-
 	globalTime.fetch_add(dt);
 
-
-	// some code
+	for (uint16_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
+	{
+		emmiters[emmiterIndex].update(dt);
+		if (emmiters[emmiterIndex].get_state() == emmiter_state::finished && emmiters[emmiterIndex].can_spawn_new())
+		{
+			bool shouldSpawn = rand_bool();
+			if (shouldSpawn)
+			{
+				vec2 point = emmiters[emmiterIndex].get_active_rand_position();
+				emmit(point.x, point.y);
+			}
+		}
+	}
 }
 
 void test::on_click(int x, int y)
 {
-	// some code
+	emmit(x, y);
+}
 
-	static int _currentemmiterIndex = -1;
-	_currentemmiterIndex++;
-	emmiters[_currentemmiterIndex].setEnabled(true);
-	emmiters[_currentemmiterIndex].init(x, SCREEN_HEIGHT - y);
+void test::emmit(int x, int y)
+{
+	_currentemmiterIndex.fetch_add(1);
+	if (_currentemmiterIndex >= MAX_EMMITERS_COUNT)
+	{
+		_currentemmiterIndex = 0;
+	}
+	int busyEmmitersCount = 0;
+	while (emmiters[_currentemmiterIndex].get_state() != emmiter_state::idle)
+	{
+		//all emmiters are busy just skip emit
+		//shouldn't happen in normal situations unless player pause the window by dragging it
+		busyEmmitersCount++;
+		if (busyEmmitersCount >= MAX_EMMITERS_COUNT)
+		{
+			return;
+		}
+		_currentemmiterIndex.fetch_add(1);
+		if (_currentemmiterIndex >= MAX_EMMITERS_COUNT)
+		{
+			_currentemmiterIndex = 0;
+		}
+	}
+	emmiters[_currentemmiterIndex].init(x, SCREEN_HEIGHT - y, PARTICLE_LIFE_TIME);
 }
 
 bool test::is_outside_screen(int x, int y)
 {
-	if (x > SCREEN_WIDTH / 2)
+	if (x > SCREEN_WIDTH)
 	{
 		return true;
 	}
 
-	if (y > SCREEN_HEIGHT / 2)
+	if (y > SCREEN_HEIGHT)
 	{
 		return true;
 	}
 
-	if (x < (-SCREEN_WIDTH) / 2)
+	if (x < 0)
 	{
 		return true;
 	}
 
-	if (y > (-SCREEN_HEIGHT) / 2)
+	if (y < 0)
 	{
 		return true;
 	}
+
+	return false;
+}
+
+bool test::rand_bool(void)
+{
+	return rand() % 100 < CHANCE_TO_SPAWN;
 }

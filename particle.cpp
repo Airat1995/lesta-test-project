@@ -9,43 +9,50 @@ void particle::init(int x, int y)
 	_color.x = ((float)rand()) / RAND_MAX;
 	_color.y = ((float)rand()) / RAND_MAX;
 	_color.z = ((float)rand()) / RAND_MAX;
-	_color.w = ((float)rand()) / RAND_MAX;
+	_color.w = 1.0f;
 
-	_position.x = x;
-	_position.y = y;
-	_initialMoveVector.x = rand() % 9 - 5;
-	_initialMoveVector.y = rand() % 9 - 5;
+	_velocityVector.x = 0;
+	_velocityVector.y = 0;
+	_transform.current.x = x;
+	_transform.current.y = y;
+
+	_transform.previous.x = x;
+	_transform.previous.y = y;
 }
 
-void particle::update(void)
+void particle::fixed_update(int globalTime, int dt)
 {
 	if (!_isVisible)
 	{
 		return;
 	}
 
-	_position.x += _initialMoveVector.x + _movingVector.x;
-	_position.y += _initialMoveVector.y + _movingVector.y;
-	_movingVector.x = 0;
-	_movingVector.y = 0;
-
-	_isVisible = !test::is_outside_screen(_position.x, _position.y);
+	_transform.previous.x = _transform.current.x;
+	_transform.previous.y = _transform.current.y;
+	
+	_transform.current.x = _transform.current.x + _velocityVector.x * dt;
+	_transform.current.y = _transform.current.y + _velocityVector.y * dt;
+	
+	_isVisible = !test::is_outside_screen(_transform.current.x, _transform.current.y);
 }
 
-void particle::render(void)
+void particle::render(double alpha)
 {
 	if (!_isVisible)
 	{
 		return;
 	}
 
-	platform::drawPoint(_position.x, _position.y, _color.x, _color.y, _color.z, _color.w);
+	int drawPosX = _transform.previous.x + (_transform.current.x - _transform.previous.x) * alpha;
+	int drawPosY = _transform.previous.y + (_transform.current.y - _transform.previous.y) * alpha;
+
+	platform::drawPoint(drawPosX, test::SCREEN_HEIGHT - drawPosY, _color.x, _color.y, _color.z, _color.w);
 }
 
-void particle::move(vec2& delta)
+void particle::add_velocity(vec2& delta)
 {
-	_movingVector.x += delta.x;
-	_movingVector.y += delta.y;
+	_velocityVector.x += delta.x;
+	_velocityVector.y += delta.y;
 }
 
 void particle::hide(void)

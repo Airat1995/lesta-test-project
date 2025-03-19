@@ -50,6 +50,7 @@
     <ClInclude Include="particle.h" />
     <ClInclude Include="physics.h" />
     <ClInclude Include="platform.h" />
+    <ClInclude Include="state.h" />
     <ClInclude Include="test.h" />
     <ClInclude Include="vec2.h" />
   </ItemGroup>

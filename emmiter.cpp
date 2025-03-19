@@ -1,11 +1,15 @@
 #include "emmiter.h"
 #include <stdlib.h>
 
-void emmiter::init(int x, int y, float lifeTime)
+void emmiter::init(int x, int y, int lifeTime, float minInitialSpeed, float maxInitialSpeed)
 {
 	for (uint16_t particleIndex = 0; particleIndex < PARTICLES_PER_EMMITER; particleIndex++)
 	{
 		_particles[particleIndex].init(x, y);
+		vec2 velocity;
+		velocity.x = randomFloat(minInitialSpeed, maxInitialSpeed);
+		velocity.y = randomFloat(minInitialSpeed, maxInitialSpeed);
+		_particles[particleIndex].add_velocity(velocity);
 	}
 	_lifeTime = lifeTime;
 	_state = emmiter_state::running;
@@ -20,7 +24,7 @@ void emmiter::stop(void)
 	}
 }
 
-void emmiter::update(float dt)
+void emmiter::update(int dt)
 {
 	if (_state == emmiter_state::idle)
 	{
@@ -32,11 +36,6 @@ void emmiter::update(float dt)
 		_state = emmiter_state::idle;
 		return;
 	}
-
-	for (uint8_t particleIndex = 0; particleIndex < PARTICLES_PER_EMMITER; particleIndex++)
-	{
-		_particles[particleIndex].update();
-	}
 	_lifeTime -= dt;
 	if (_lifeTime <= 0)
 	{
@@ -44,20 +43,15 @@ void emmiter::update(float dt)
 	}
 }
 
-void emmiter::render(void)
+void emmiter::fixed_update(int time, int dt)
 {
-	if (_state == emmiter_state::idle || _state == emmiter_state::finished)
-	{
-		return;
-	}
-
 	for (uint8_t particleIndex = 0; particleIndex < PARTICLES_PER_EMMITER; particleIndex++)
 	{
-		_particles[particleIndex].render();
+		_particles[particleIndex].fixed_update(time, dt);
 	}
 }
 
-void emmiter::move(vec2& delta)
+void emmiter::render(double alpha)
 {
 	if (_state == emmiter_state::idle || _state == emmiter_state::finished)
 	{
@@ -66,7 +60,20 @@ void emmiter::move(vec2& delta)
 
 	for (uint8_t particleIndex = 0; particleIndex < PARTICLES_PER_EMMITER; particleIndex++)
 	{
-		_particles[particleIndex].move(delta);
+		_particles[particleIndex].render(alpha);
+	}
+}
+
+void emmiter::add_velocity(vec2& delta)
+{
+	if (_state == emmiter_state::idle || _state == emmiter_state::finished)
+	{
+		return;
+	}
+
+	for (uint8_t particleIndex = 0; particleIndex < PARTICLES_PER_EMMITER; particleIndex++)
+	{
+		_particles[particleIndex].add_velocity(delta);
 	}
 }
 

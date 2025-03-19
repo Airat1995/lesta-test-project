@@ -11,18 +11,57 @@
 // Just some hints on implementation
 // You could remove all of them
 
+static std::atomic_int accumulator;
 static std::atomic_int globalTime;
 static std::atomic_int _currentemmiterIndex;
 static std::atomic_bool workerMustExit = false;
 
 emmiter* emmiters;
-physics physic;
+physics* physic;
+
+void WorkerThread(void)
+{
+	vec2& gravityValue = physic->getGravity();
+	while (!workerMustExit)
+	{
+		nvtxRangePush(__FUNCTION__);
+
+		static int lastTime = 0;
+		const int time = globalTime.load();
+		const int delta = time - lastTime;
+		lastTime = time;
+
+		while (accumulator >= test::PHYSICS_FRAME_TIME)
+		{
+			if (workerMustExit)
+			{
+				return;
+			}
+			for (uint16_t emmiterIndex = 0; emmiterIndex < test::MAX_EMMITERS_COUNT; emmiterIndex++)
+			{
+				emmiters[emmiterIndex].add_velocity(gravityValue);
+				emmiters[emmiterIndex].fixed_update(time, test::PHYSICS_FRAME_TIME);
+			}
+			accumulator.fetch_sub(test::PHYSICS_FRAME_TIME);
+		}
+
+		static const int MIN_UPDATE_PERIOD_MS = 10;
+		if (delta < MIN_UPDATE_PERIOD_MS)
+			std::this_thread::sleep_for(std::chrono::milliseconds(MIN_UPDATE_PERIOD_MS - delta));
+
+		nvtxRangePop();
+	}
+}
 
 void test::init(void)
 {
+	physic = new physics();
 	emmiters = new emmiter[test::MAX_EMMITERS_COUNT];
 	_currentemmiterIndex.store(-1);
-	physic.init(GRAVITY_FORCE);
+	accumulator.store(0);
+	physic->init(GRAVITY_FORCE);
+	std::thread workerThread(WorkerThread);
+	workerThread.detach();
 }
 
 void test::term(void)
@@ -33,30 +72,36 @@ void test::term(void)
 		emmiters[emmiterIndex].stop();
 	}
 	delete[] emmiters;
+	delete physic;
 }
 
 void test::render(void)
 {
+	double alpha = accumulator.load() / ((double)PHYSICS_FRAME_TIME);
+	printf("alpha %f\n", alpha);
 	for (uint16_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
 	{
-		emmiters[emmiterIndex].render();
+		emmiters[emmiterIndex].render(alpha);
 	}
 }
 
 void test::update(int dt)
 {
+	accumulator.fetch_add(dt);
 	globalTime.fetch_add(dt);
 
-	for (uint16_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
+	for (uint16_t emmiterIndex = 0; emmiterIndex < test::MAX_EMMITERS_COUNT; emmiterIndex++)
 	{
 		emmiters[emmiterIndex].update(dt);
-		if (emmiters[emmiterIndex].get_state() == emmiter_state::finished && emmiters[emmiterIndex].can_spawn_new())
+		if (emmiters[emmiterIndex].get_state() == emmiter_state::finished)
 		{
-			bool shouldSpawn = rand_bool();
-			if (shouldSpawn)
+			bool shouldSpawn = test::rand_chance_to_spawn();
+			bool canGetSpawnPoint = emmiters[emmiterIndex].can_spawn_new();
+
+			if (shouldSpawn && canGetSpawnPoint)
 			{
 				vec2 point = emmiters[emmiterIndex].get_active_rand_position();
-				emmit(point.x, point.y);
+				test::emmit(point.x, point.y);
 			}
 		}
 	}
@@ -90,7 +135,7 @@ void test::emmit(int x, int y)
 			_currentemmiterIndex = 0;
 		}
 	}
-	emmiters[_currentemmiterIndex].init(x, SCREEN_HEIGHT - y, PARTICLE_LIFE_TIME);
+	emmiters[_currentemmiterIndex].init(x, y, PARTICLE_LIFE_TIME, PARTICLE_MIN_INITIAL_SPEED, PARTICLE_MAX_INITIAL_SPEED);
 }
 
 bool test::is_outside_screen(int x, int y)
@@ -118,7 +163,7 @@ bool test::is_outside_screen(int x, int y)
 	return false;
 }
 
-bool test::rand_bool(void)
+bool test::rand_chance_to_spawn(void)
 {
 	return rand() % 100 < CHANCE_TO_SPAWN;
 }

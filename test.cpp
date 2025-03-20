@@ -45,10 +45,6 @@ void WorkerThread(void)
 			accumulator.fetch_sub(test::PHYSICS_FRAME_TIME);
 		}
 
-		static const int MIN_UPDATE_PERIOD_MS = 10;
-		if (delta < MIN_UPDATE_PERIOD_MS)
-			std::this_thread::sleep_for(std::chrono::milliseconds(MIN_UPDATE_PERIOD_MS - delta));
-
 		nvtxRangePop();
 	}
 }
@@ -78,7 +74,6 @@ void test::term(void)
 void test::render(void)
 {
 	double alpha = accumulator.load() / ((double)PHYSICS_FRAME_TIME);
-	printf("alpha %f\n", alpha);
 	for (uint16_t emmiterIndex = 0; emmiterIndex < MAX_EMMITERS_COUNT; emmiterIndex++)
 	{
 		emmiters[emmiterIndex].render(alpha);
